@@ -11,7 +11,7 @@
                        :model :ship
                        :faction :blue
                        :rotation 0
-                       :pos [200 200]}
+                       :pos [100 300]}
               :blue-2 {:id :blue-2
                        :model :ship
                        :faction :blue
@@ -21,7 +21,7 @@
                       :model :ship
                       :faction :red
                       :rotation (* pi 1.5)
-                      :pos [200 200]}}})
+                      :pos [400 400]}}})
 
 (def request-animation-frame
 )

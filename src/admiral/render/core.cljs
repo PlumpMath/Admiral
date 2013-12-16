@@ -44,12 +44,30 @@
     (aset ctx "lineWidth" width)
     (.stroke ctx)))
 
+(defn draw-ship
+  [ctx faction]
+  (let [color (condp = faction
+                :red (to-color 200 0 0)
+                :blue (to-color 0 0 200))]
+    (aset ctx "fillStyle" color)
+    (.beginPath ctx)
+    (.moveTo ctx 0 10)
+    (.lineTo ctx 10 -10)
+    (.lineTo ctx -10 -10)
+    (.lineTo ctx 0 10)
+    (.fill ctx)
+    ))
+
 ;; Drawing Entities
 (defmulti draw-entity :model)
 
-(defmethod draw-entity :ship [{:keys [color pos facing]} ctx]
-  
-  )
+(defmethod draw-entity :ship [{:keys [faction rotation pos]} ctx]
+  (let [[x y] pos]
+    (.save ctx)
+    (.translate ctx x y)
+    (.rotate ctx rotation)
+    (draw-ship ctx faction)
+    (.restore ctx)))
 
 ;; Renderer
 (defprotocol Renderer
@@ -59,11 +77,8 @@
 (deftype Canvas [context]
   Renderer
   (render [_ gamestate]
-    (draw-circle context [200 0 0]
-                 (get-in gamestate [:entities :only-ship :pos])
-                 10
-                 )
-    ))
+    (doseq [[id entity] (:entities gamestate)]
+      (draw-entity entity context))))
 
 (defn create-canvas-renderer
   "Creates a renderer from a canvas id."
