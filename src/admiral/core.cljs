@@ -6,6 +6,7 @@
 (def pi (.-PI js/Math))
 
 ;; Gamestate
+;; The world is 1000 x 500
 (def test-gamestate
   {:entities {:blue-1 {:id :blue-1
                        :model :ship

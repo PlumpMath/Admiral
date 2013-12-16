@@ -1,5 +1,14 @@
 (ns admiral.render.core)
 
+;; Want the "gameworld" to be 1000 x 500 so I need to scale that size
+;; to the size of the canvas for drawing.
+
+(defn scale-canvas
+  [ctx]
+  (let [width (.-width (.-canvas ctx))
+        scale (/ width 1000)]
+    (.scale ctx scale scale)))
+
 ;; Util
 (defn get-canvas-element
   [id]
@@ -10,7 +19,9 @@
   (let [width (.-innerWidth js/window)
         height (.-innerHeight js/window)]
     (aset canvas "width" width)
-    (aset canvas "height" height)))
+    (if (< height (/ width 2))
+      (aset canvas "height" height)
+      (aset canvas "height" (/ width 2)))))
 
 (defn to-color [& rgbas]
   (let [csv (apply str (interpose ", " rgbas))]
@@ -55,8 +66,7 @@
     (.lineTo ctx 10 -10)
     (.lineTo ctx -10 -10)
     (.lineTo ctx 0 10)
-    (.fill ctx)
-    ))
+    (.fill ctx)))
 
 ;; Drawing Entities
 (defmulti draw-entity :model)
@@ -77,8 +87,11 @@
 (deftype Canvas [context]
   Renderer
   (render [_ gamestate]
+    (.save context)
+    (scale-canvas context)
     (doseq [[id entity] (:entities gamestate)]
-      (draw-entity entity context))))
+      (draw-entity entity context))
+    (.restore context)))
 
 (defn create-canvas-renderer
   "Creates a renderer from a canvas id."
