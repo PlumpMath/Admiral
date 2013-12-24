@@ -14,7 +14,8 @@
     :builds [{:id "admiral"
               :source-paths ["src"]
               :compiler {
-                :output-to "admiral.js"
-                :output-dir "out"
-                :optimizations :none
-                :source-map true}}]})
+                         :output-to "admiral.js"
+                         :output-dir "out"
+                         :externs ["js/physicsjs-full-0.5.3.min.js"]
+                         :optimizations :none
+                         :source-map true}}]})

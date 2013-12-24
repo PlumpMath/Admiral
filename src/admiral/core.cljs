@@ -1,7 +1,8 @@
 (ns admiral.core
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [cljs.core.async :refer [<! >! chan put!]]
-            [admiral.render.core :as draw]))
+            [admiral.render.core :as draw]
+            [admiral.physics :as physics]))
 
 (def pi (.-PI js/Math))
 
@@ -24,35 +25,35 @@
                       :rotation (* pi 1.5)
                       :pos [400 400]}}})
 
-(def request-animation-frame
-)
-
 (def callback nil)
 (defn render-tick
   "Returns a channel that gets a tick value placed 60x / second"
   []
   (let [tick (chan)]
-    (set! callback (fn []
+    (set! callback (fn [t]
                      ((or js/requestAnimationFrame
                           js/webkitRequestAnimationFrame)
                       callback)
-                     (put! tick :render)))
-    (callback)
+                     (put! tick t)))
+    (callback 0.0)
     tick))
 
 (defn main []
   (let [gamestate (atom test-gamestate)
         renderer (draw/create-canvas-renderer "canvas")
+        engine (physics/create-physics-engine)
         tick (render-tick)]
 
-    ;; Render Loop
+    ;; Main Loop
     (go
      (loop [t (<! tick)]
        (when t
+         (.log js/console t)
+         ;; physics tick
+         (swap! gamestate #(physics/step engine % t))
+         ;; render
          (draw/render renderer @gamestate)
          (recur (<! tick)))))
-
-
     ))
 
 (aset js/window "onload" main)
