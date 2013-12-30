@@ -48,7 +48,7 @@
     (go
      (loop [t (<! tick)]
        (when t
-         (.log js/console t)
+         ;;(.log js/console t)
          ;; physics tick
          (swap! gamestate #(physics/step engine % t))
          ;; render

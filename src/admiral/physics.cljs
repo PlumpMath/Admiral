@@ -50,8 +50,14 @@
                                           :radius 20}))]
     ;; world.add( Physics.behavior('body-impulse-response') );
     (.add world (.behavior js/Physics "body-impulse-response"))
+    (.add world (.behavior js/Physics "edge-collision-detection"
+                           (clj->js {:aabb (.aabb js/Physics 0 0 1000 500)
+                                     :resitution 0.05 ;; Bouncyness
+                                     :cof 0.99 ;; Friction of wall I guess
+                                     })))
     (.add world renderer)
     (.add world ball)
+
     engine
     ))
 
