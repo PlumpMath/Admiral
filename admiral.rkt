@@ -15,12 +15,6 @@
 
 (struct gamestate (entities) #:transparent)
 
-;; rocket locations
-;;(list bp bs sp ss boost)
-;; bp  | |  bs
-;; sp | | | ss
-;;    boost
-
 ;;;; GameWorld
 ;; Internally there's a hash-map of entities to hash-map of components. That
 ;; should be an implementation detail though, just about everything is abstract
@@ -34,8 +28,28 @@
                        ("enemy-ship" . #hash((position . (400 400))
                                              (rotation . 0)
                                              (model . ship)
+                                             (faction . "black")
+                                             (rockets . (#t #t #f #t #f))))
+                       ("enemy-ship2" . #hash((position . (420 420))
+                                             (rotation . 0)
+                                             (model . ship)
+                                             (faction . "green")
+                                             (rockets . (#t #t #t #t #f))))
+                       ("enemy-ship3" . #hash((position . (430 350))
+                                             (rotation . 0)
+                                             (model . ship)
                                              (faction . "red")
-                                             (rockets . (#t #f #f #t #f)))))))
+                                             (rockets . (#t #f #f #t #f))))
+                       ("enemy-ship9" . #hash((position . (100 300))
+                                             (rotation . 0)
+                                             (model . ship)
+                                             (faction . "yellow")
+                                             (rockets . (#t #f #t #f #f))))
+                       ("another-ship" . #hash((position . (500 450))
+                                               (rotation . 12)
+                                               (model . ship)
+                                               (faction . "purple")
+                                               (rockets . (#t #f #t #t #t)))))))
 
 (define (has-component? entity component-type)
   (hash-has-key? entity component-type))
@@ -119,8 +133,62 @@
     (draw-entity frame ent)))
 
 ;;;; Systems
+;; rocket locations
+;;(list bp bs sp ss boost)
+;; bp  | |  bs
+;; sp | | | ss
+;;    boost
+(define (realative-ship-force rockets)
+  ;; forces here represent (rotational, x, y)
+  (define forces '((-2 2 0) (2 -2 0) (2 2 0) (-2 -2 0) (0 0 5)))
+
+  (define relative-force
+    (for/fold ([cumulative-force '(0 0 0)])
+              ([rocket-on? rockets]
+               [rocket-force forces]
+               #:when rocket-on?)
+      (map + cumulative-force rocket-force)))
+  
+  relative-force)
+
+(define (is-ship? kvp)
+  (define ent (cdr kvp))
+  
+  (and 
+   (has-component? ent 'rockets)
+   (has-component? ent 'position)
+   (has-component? ent 'rotation)))
+
 (define (apply-rockets state)
-  state)
+  (define ents (gamestate-entities state))
+  
+  (define new-ents
+    (for/fold ([ents ents])
+              ([kvp (hash->list ents)]
+               #:when (is-ship? kvp))
+      (define id (car kvp))
+      (define ent (cdr kvp))
+      (define rockets (get-component ent 'rockets))
+      (define position (get-component ent 'position))
+      (define rotation (get-component ent 'rotation))
+      (define relative-forces (realative-ship-force rockets))
+      ;; We need the forces in terms of the rotation of the ship.
+      (define current-rotational-vector
+        (let ([x (second relative-forces)]
+              [y (third relative-forces)]
+              [theta (degrees->radians rotation)])
+          (list (- (* x (cos theta)) (* y (sin theta)))
+                (+ (* x (sin theta)) (* y (cos theta))))))
+      (define translation (map * current-rotational-vector (rest relative-forces)))
+      (define new-rotation (modulo (+ rotation (first relative-forces)) 360)) 
+      (define new-position (map + translation position))
+      
+      (define new-comps
+        (hash-set* ent 'rotation new-rotation 'position new-position))
+      
+      (hash-set ents id new-comps)))
+  
+    (struct-copy gamestate state [entities new-ents]))
 
 (define (update-game state)
   (define update-function
@@ -134,4 +202,4 @@
             ;;(on-release keyup)
             (to-draw render-game)))
 
-;;(start-scene)
+(start-scene)
