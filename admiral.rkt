@@ -1,8 +1,8 @@
 #lang racket
 
 #| This is a real fun game.
-   To play the game you write a program that plays the game.
-   Have fun!
+To play the game you write a program that plays the game.
+Have fun!
 |#
 
 (require 2htdp/universe
@@ -16,9 +16,9 @@
 (struct gamestate (entities) #:transparent)
 
 ;;;; GameWorld
-;; Internally there's a hash-map of entities to hash-map of components. That
-;; should be an implementation detail though, just about everything is abstract
-;; on top of that.
+;; Internally there's a hash-map of entities to hash-map of
+;; components. That should be an implementation detail though, just
+;; about everything is abstract on top of that.
 (define a-world (gamestate
                  #hash(("player-ship" . #hash((position . (100 100))
                                               (rotation . 90)
@@ -31,25 +31,26 @@
                                              (faction . "black")
                                              (rockets . (#t #t #f #t #f))))
                        ("enemy-ship2" . #hash((position . (420 420))
-                                             (rotation . 0)
-                                             (model . ship)
-                                             (faction . "green")
-                                             (rockets . (#t #t #t #t #f))))
+                                              (rotation . 0)
+                                              (model . ship)
+                                              (faction . "green")
+                                              (rockets . (#t #t #t #t #f))))
                        ("enemy-ship3" . #hash((position . (430 350))
-                                             (rotation . 0)
-                                             (model . ship)
-                                             (faction . "red")
-                                             (rockets . (#t #f #f #t #f))))
+                                              (rotation . 0)
+                                              (model . ship)
+                                              (faction . "red")
+                                              (rockets . (#t #f #f #t #f))))
                        ("enemy-ship9" . #hash((position . (100 300))
-                                             (rotation . 0)
-                                             (model . ship)
-                                             (faction . "yellow")
-                                             (rockets . (#t #f #t #f #f))))
-                       ("another-ship" . #hash((position . (500 450))
+                                              (rotation . 0)
+                                              (model . ship)
+                                              (faction . "yellow")
+                                              (rockets . (#t #f #t #f #f))))
+                       ("another-ship" . #hash((position . (500 350))
                                                (rotation . 12)
                                                (model . ship)
                                                (faction . "purple")
-                                               (rockets . (#t #f #t #t #t)))))))
+                                               (rockets . (#f #t #t #f #t))))
+                       )))
 
 (define (has-component? entity component-type)
   (hash-has-key? entity component-type))
@@ -62,13 +63,13 @@
 (define (background-grid)
   (define with-x
     (for/fold ([scene (empty-scene SCREEN-WIDTH SCREEN-HEIGHT "darkgray")])
-              ([x (stream-map (λ (x) (* 10 x)) (in-range 1 100))])
+              ([x (stream-map (lambda (x) (* 10 x)) (in-range 1 100))])
       (scene+line
        scene
        x 0 x SCREEN-HEIGHT "lightgray"
        )))
   (for/fold ([scene with-x])
-            ([y (stream-map (λ (x) (* 10 x)) (in-range 1 50))])
+            ([y (stream-map (lambda (x) (* 10 x)) (in-range 1 50))])
     (scene+line
      scene
      0 y SCREEN-WIDTH y "lightgray"
@@ -140,16 +141,13 @@
 ;;    boost
 (define (realative-ship-force rockets)
   ;; forces here represent (rotational, x, y)
-  (define forces '((-2 2 0) (2 -2 0) (2 2 0) (-2 -2 0) (0 0 5)))
+  (define forces '((-2 2 0) (2 -2 0) (2 2 0) (-2 -2 0) (0 0 -5)))
 
-  (define relative-force
-    (for/fold ([cumulative-force '(0 0 0)])
-              ([rocket-on? rockets]
-               [rocket-force forces]
-               #:when rocket-on?)
-      (map + cumulative-force rocket-force)))
-  
-  relative-force)
+  (for/fold ([cumulative-force '(0 0 0)])
+      ([rocket-on? rockets]
+       [rocket-force forces]
+       #:when rocket-on?)
+    (map + cumulative-force rocket-force)))
 
 (define (is-ship? kvp)
   (define ent (cdr kvp))
@@ -159,40 +157,141 @@
    (has-component? ent 'position)
    (has-component? ent 'rotation)))
 
+;; Lets try and get rid of some of this boilerplate.
+
+;; Systems are called with each entity that has all the components.
+;; They should return a new entity. I need to also give them access
+;; to the whole gamestate somehow so they can query it. Not sure yet
+;; if this should just return a lambda that gets the defines for us or if
+;; it should instead return something that hooks into a more
+;; efficiciant way to precompute what's needed.
+
+;; This prolly does have to be a macro huh...
+;; Typed racket is another option to make sure the body is correct.
+;; first, body has to be a function that can be called
+;; (body state id components). It is called once with each entity with all
+;; required-components.
+;; but what does it return....
+;; Maybe it should return a map of ids to entities. That way it can
+;; update any entities it wants, but that wont let it remove
+;; entities...
+;; This is one of the problems with functional purity, if you could
+;; just set! on any entities (like how all other game engines work)
+;; this wouldn't be a problem.
+;; Another thing to do is to return a full gamestate and just add a
+;; few helpers for (update-entity or whatever). Yet another thing to
+;; do is have a few variations on system that can return different
+;; things.
+;; I actuially really like that idea, just make em when you need em.
+
+;; This seems overly verbose... Need to learn more racket probaby.
+(define (has-comps? kvp required-components)
+  (define ent (cdr kvp))
+  (for/fold
+      ([has-all? #t])
+      ([has-comp? (map (curry hash-has-key? ent) required-components)])
+    (and has-all? has-comp?)))
+
+(module+ test-has-comps (require rackunit)
+  (define an-entity '("entity-id" . #hash((position . (100 100))
+                                          (magic-swag . "holla"))))
+  (check-true (has-comps? an-entity '(position magic-swag)))
+  (check-false (has-comps? an-entity '(position evil-powers)))
+  )
+
+;; Body must return new component hash-map. Will add other variations
+;; later if I need to that allow modification of other entities and
+;; adding and removing entities.
+;; (body state id components) => components
+(define (system required-components body)
+  (lambda (state)
+    (define entities (gamestate-entities state))
+    (define new-ents
+      (for/fold
+          ([ents entities])
+          ([kvp (hash->list entities)]
+           #:when (has-comps? kvp required-components))
+        (define id (car kvp))
+        (define comps (cdr kvp))
+        (define new-comps (body state id comps))
+        (hash-set ents id new-comps)))
+    (struct-copy gamestate state [entities new-ents])))
+
+(module+ test-system (require rackunit)
+  (define an-entity '("entity-id" . #hash((position . (100 100))
+                                          (magic-swag . "holla"))))
+  (check-true (has-comps? an-entity '(position magic-swag)))
+  (check-false (has-comps? an-entity '(position evil-powers)))
+  )
+
+;; First test of ship controlling, lets just fuck around with the
+;; rockets every frame and see what happens.
+(define (random-rockets state)
+  state
+  )
+
+;; Oh my defines!
 (define (apply-rockets state)
   (define ents (gamestate-entities state))
   
   (define new-ents
     (for/fold ([ents ents])
-              ([kvp (hash->list ents)]
-               #:when (is-ship? kvp))
+        ([kvp (hash->list ents)]
+         #:when (is-ship? kvp))
       (define id (car kvp))
       (define ent (cdr kvp))
       (define rockets (get-component ent 'rockets))
       (define position (get-component ent 'position))
       (define rotation (get-component ent 'rotation))
       (define relative-forces (realative-ship-force rockets))
-      ;; We need the forces in terms of the rotation of the ship.
-      (define current-rotational-vector
-        (let ([x (second relative-forces)]
-              [y (third relative-forces)]
-              [theta (degrees->radians rotation)])
-          (list (- (* x (cos theta)) (* y (sin theta)))
-                (+ (* x (sin theta)) (* y (cos theta))))))
-      (define translation (map * current-rotational-vector (rest relative-forces)))
-      (define new-rotation (modulo (+ rotation (first relative-forces)) 360)) 
-      (define new-position (map + translation position))
+      (define global-force (gamespace-force rotation (rest relative-forces)))
+      (define new-rotation (modulo (+ rotation (first relative-forces)) 360))
+      (define new-position (map + global-force position))
+      (define ghetto-wall-collision-position
+        (let ([x (first new-position)]
+              [y (second new-position)])
+          (list (cond
+                 [(< x 0) 0]
+                 [(> x SCREEN-WIDTH) SCREEN-WIDTH]
+                 [else x])
+                (cond
+                 [(< y 0) 0]
+                 [(> y SCREEN-HEIGHT) SCREEN-HEIGHT]
+                 [else y]))))
       
       (define new-comps
-        (hash-set* ent 'rotation new-rotation 'position new-position))
+        (hash-set* ent
+                   'rotation new-rotation
+                   'position ghetto-wall-collision-position))
       
       (hash-set ents id new-comps)))
   
-    (struct-copy gamestate state [entities new-ents]))
+  (struct-copy gamestate state [entities new-ents]))
+
+;; Takes the relative force on the ship and the ships rotation and
+;; returns that force in gamespace. Note that this x and y still use
+;; the same coordinate system as gamespace (positive y being down).
+;; But relative to the ship so if force-x = 0 and force-y = -5 that
+;; means the ship is pushing forward at a force of 5.
+;; Ships rotation is counter-clockwise and in degrees as that's what
+;; racket's image library works with.
+(define (gamespace-force ship-rotation relative-force)
+  (let ([theta (degrees->radians (modulo (- 360 ship-rotation) 360))]
+        [rx (first relative-force)]
+        [ry (second relative-force)])
+    (map round-to-2-places
+         (list (- (* rx (cos theta)) (* ry (sin theta)))
+               (+ (* rx (sin theta)) (* ry (cos theta)))))))
+
+;; Not really sure what resolution I need.
+(define (round-to-2-places n)
+  (/ (round (* 100 n)) 100))
 
 (define (update-game state)
   (define update-function
-    (compose apply-rockets))
+    (compose
+     random-rockets
+     apply-rockets))
   (update-function state))
 
 (define (start-scene)
@@ -202,4 +301,14 @@
             ;;(on-release keyup)
             (to-draw render-game)))
 
-(start-scene)
+;;(start-scene)
+
+
+;; Tests, will need breaking out at the same time as the file is
+;; broken out.
+(module+ test (require rackunit)
+  (check-equal? 1 1)
+  (check-equal? (gamespace-force 90 '(1 1)) '(1.0 -1.0))
+  (check-equal? (gamespace-force 180 '(1 1)) '(-1.0 -1.0))
+  ;(check-equal? (gamespace-force 45 '(1 1)) '(1 -1))
+  )
