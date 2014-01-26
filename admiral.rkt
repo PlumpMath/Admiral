@@ -60,21 +60,20 @@ Have fun!
 
 ;;;; Graphics
 ;; This is a bit messy and sort of locked to 1000 x 500
-(define (background-grid)
-  (define with-x
-    (for/fold ([scene (empty-scene SCREEN-WIDTH SCREEN-HEIGHT "darkgray")])
-              ([x (stream-map (lambda (x) (* 10 x)) (in-range 1 100))])
+(define background-grid
+  (let ([with-x 
+         (for/fold ([scene (empty-scene SCREEN-WIDTH SCREEN-HEIGHT "darkgray")])
+             ([x (stream-map (lambda (x) (* 10 x)) (in-range 1 100))])
+           (scene+line
+            scene
+            x 0 x SCREEN-HEIGHT "lightgray"
+            ))])
+    (for/fold ([scene with-x])
+        ([y (stream-map (lambda (x) (* 10 x)) (in-range 1 50))])
       (scene+line
        scene
-       x 0 x SCREEN-HEIGHT "lightgray"
-       )))
-  (for/fold ([scene with-x])
-            ([y (stream-map (lambda (x) (* 10 x)) (in-range 1 50))])
-    (scene+line
-     scene
-     0 y SCREEN-WIDTH y "lightgray"
-     ))
-  )
+       0 y SCREEN-WIDTH y "lightgray"
+       ))))
 
 (define (ship faction)
   (let ([body (rectangle 20 40 "solid" faction)]
@@ -129,33 +128,11 @@ Have fun!
 (define (render-game state)
   ;; Draw entities.
   (define entities (gamestate-entities state))
-  (for/fold ([frame (background-grid)])
+  (for/fold ([frame background-grid])
             ([ent (hash-values entities)])
     (draw-entity frame ent)))
 
 ;;;; Systems
-;; rocket locations
-;;(list bp bs sp ss boost)
-;; bp  | |  bs
-;; sp | | | ss
-;;    boost
-(define (realative-ship-force rockets)
-  ;; forces here represent (rotational, x, y)
-  (define forces '((-2 2 0) (2 -2 0) (2 2 0) (-2 -2 0) (0 0 -5)))
-
-  (for/fold ([cumulative-force '(0 0 0)])
-      ([rocket-on? rockets]
-       [rocket-force forces]
-       #:when rocket-on?)
-    (map + cumulative-force rocket-force)))
-
-(define (is-ship? kvp)
-  (define ent (cdr kvp))
-  
-  (and 
-   (has-component? ent 'rockets)
-   (has-component? ent 'position)
-   (has-component? ent 'rotation)))
 
 ;; Lets try and get rid of some of this boilerplate.
 
@@ -166,7 +143,8 @@ Have fun!
 ;; it should instead return something that hooks into a more
 ;; efficiciant way to precompute what's needed.
 
-;; This prolly does have to be a macro huh...
+;; Making this a macro will make the syntax a bit nicer.
+
 ;; Typed racket is another option to make sure the body is correct.
 ;; first, body has to be a function that can be called
 ;; (body state id components). It is called once with each entity with all
@@ -226,47 +204,60 @@ Have fun!
 
 ;; First test of ship controlling, lets just fuck around with the
 ;; rockets every frame and see what happens.
-(define (random-rockets state)
-  state
-  )
+(define (rand-bool)
+  (< (random) 0.5))
 
-;; Oh my defines!
-(define (apply-rockets state)
-  (define ents (gamestate-entities state))
-  
-  (define new-ents
-    (for/fold ([ents ents])
-        ([kvp (hash->list ents)]
-         #:when (is-ship? kvp))
-      (define id (car kvp))
-      (define ent (cdr kvp))
-      (define rockets (get-component ent 'rockets))
-      (define position (get-component ent 'position))
-      (define rotation (get-component ent 'rotation))
-      (define relative-forces (realative-ship-force rockets))
-      (define global-force (gamespace-force rotation (rest relative-forces)))
-      (define new-rotation (modulo (+ rotation (first relative-forces)) 360))
-      (define new-position (map + global-force position))
-      (define ghetto-wall-collision-position
-        (let ([x (first new-position)]
-              [y (second new-position)])
-          (list (cond
-                 [(< x 0) 0]
-                 [(> x SCREEN-WIDTH) SCREEN-WIDTH]
-                 [else x])
-                (cond
-                 [(< y 0) 0]
-                 [(> y SCREEN-HEIGHT) SCREEN-HEIGHT]
-                 [else y]))))
-      
-      (define new-comps
-        (hash-set* ent
-                   'rotation new-rotation
-                   'position ghetto-wall-collision-position))
-      
-      (hash-set ents id new-comps)))
-  
-  (struct-copy gamestate state [entities new-ents]))
+(define random-rockets
+  (system '(rockets)
+   (lambda (state id components)
+     (define rockets (get-component components 'rockets))
+     (define new-rockets
+       (for/list ([x (range 5)])
+         (rand-bool)))
+     (hash-set components 'rockets new-rockets)
+   )))
+
+;; rocket locations
+;;(list bp bs sp ss boost)
+;; bp  | |  bs
+;; sp | | | ss
+;;    boost
+(define (realative-ship-force rockets)
+  ;; forces here represent (rotational, x, y)
+  (define forces '((-2 2 0) (2 -2 0) (2 2 0) (-2 -2 0) (0 0 -5)))
+
+  (for/fold ([cumulative-force '(0 0 0)])
+      ([rocket-on? rockets]
+       [rocket-force forces]
+       #:when rocket-on?)
+    (map + cumulative-force rocket-force)))
+
+(define apply-rockets
+  (system '(rockets position rotation)
+   (lambda (state id components)
+     (define rockets (get-component components 'rockets))
+     (define position (get-component components 'position))
+     (define rotation (get-component components 'rotation))
+     (define relative-forces (realative-ship-force rockets))
+     (define global-force (gamespace-force rotation (rest relative-forces)))
+     (define new-rotation (modulo (+ rotation (first relative-forces)) 360))
+     (define new-position (map + global-force position))
+     (define ghetto-wall-collision-position
+       (let ([x (first new-position)]
+             [y (second new-position)])
+         (list (cond
+                [(< x 0) 0]
+                [(> x SCREEN-WIDTH) SCREEN-WIDTH]
+                [else x])
+               (cond
+                [(< y 0) 0]
+                [(> y SCREEN-HEIGHT) SCREEN-HEIGHT]
+                [else y]))))
+     ;; alias this with modify-components or something so it's more
+     ;; game like.
+     (hash-set* components
+                'rotation new-rotation
+                'position ghetto-wall-collision-position))))
 
 ;; Takes the relative force on the ship and the ships rotation and
 ;; returns that force in gamespace. Note that this x and y still use
@@ -302,7 +293,6 @@ Have fun!
             (to-draw render-game)))
 
 ;;(start-scene)
-
 
 ;; Tests, will need breaking out at the same time as the file is
 ;; broken out.
