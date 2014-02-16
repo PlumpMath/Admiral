@@ -205,17 +205,73 @@ Have fun!
 ;; First test of ship controlling, lets just fuck around with the
 ;; rockets every frame and see what happens.
 (define (rand-bool)
-  (< (random) 0.5))
+  (< (random) 0.75))
 
 (define random-rockets
   (system '(rockets)
    (lambda (state id components)
      (define rockets (get-component components 'rockets))
-     (define new-rockets
-       (for/list ([x (range 5)])
-         (rand-bool)))
+     ;; (define new-rockets
+     ;;   (for/list ([x (range 5)])
+     ;;     (rand-bool)))
+     (define new-rockets `(#f #f #t #f #t))
      (hash-set components 'rockets new-rockets)
-   )))
+     )))
+
+;; LOGIC STUFF
+
+(define (get-rockets current-rockets state components)
+  ;; State is the gamestate, I think I need to derive a bunch of shit
+  ;; from them.
+
+  ;; lets pick a real simple rule to start with.
+  ;; If location is something turn to face something, drive.
+  ;; Want the ship to fly back and forth.
+
+  ;; Rules
+  ;; if location-x is < 10
+  ;;   if rotation = 270
+  ;;     boost
+  ;;   else
+  ;;     rotate clockwise
+  ;; if location-y is > 990
+  ;;   if rotation - 90
+  ;;     boost
+  ;;   else
+  ;;     rotate clockwise
+
+  ;; First the real shitty version!
+  (define position (get-component components 'position))
+  (define rotation (get-component components 'rotation))
+  (define pos-x (first position))
+  (define boost `(#f #f #f #f #t))
+  (define rotate `(#f #t #t #f #f))
+  (cond
+   [(< pos-x 40) (if (= rotation 270)
+                 boost
+                 rotate)]
+   [(> pos-x 960) (if (= rotation 90)
+                  boost
+                  rotate)]
+   [else boost])
+  
+  ;; (first
+  ;;  (run 1 (q)
+  ;;       (fresh (bp bs sp ss boost)
+  ;;              (== `(,bp ,bs ,sp ,ss ,boost) current-rockets))))
+
+  ;; current-rockets
+  )
+
+(define logic-rockets
+  (system '(rockets)
+    (lambda (state id components)
+      (define rockets (get-component components 'rockets))
+      (define next-rockets (get-rockets rockets state components))
+      (hash-set components 'rockets next-rockets)
+      )))
+
+;; --------
 
 ;; rocket locations
 ;;(list bp bs sp ss boost)
