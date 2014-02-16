@@ -7,7 +7,8 @@ Have fun!
 
 (require 2htdp/universe
          2htdp/image
-         racket/match)
+         (except-in racket/match ==)
+         "miniKanren/mk.rkt")
 
 (define SCREEN-WIDTH 1000)
 (define SCREEN-HEIGHT 500)
@@ -24,32 +25,32 @@ Have fun!
                                               (rotation . 90)
                                               (model . ship)
                                               (faction . "blue")
-                                              (rockets . (#f #f #f #f #t))))
-                       ("enemy-ship" . #hash((position . (400 400))
-                                             (rotation . 0)
-                                             (model . ship)
-                                             (faction . "black")
-                                             (rockets . (#t #t #f #t #f))))
-                       ("enemy-ship2" . #hash((position . (420 420))
-                                              (rotation . 0)
-                                              (model . ship)
-                                              (faction . "green")
-                                              (rockets . (#t #t #t #t #f))))
-                       ("enemy-ship3" . #hash((position . (430 350))
-                                              (rotation . 0)
-                                              (model . ship)
-                                              (faction . "red")
-                                              (rockets . (#t #f #f #t #f))))
-                       ("enemy-ship9" . #hash((position . (100 300))
-                                              (rotation . 0)
-                                              (model . ship)
-                                              (faction . "yellow")
-                                              (rockets . (#t #f #t #f #f))))
-                       ("another-ship" . #hash((position . (500 350))
-                                               (rotation . 12)
-                                               (model . ship)
-                                               (faction . "purple")
-                                               (rockets . (#f #t #t #f #t))))
+                                              (rockets . (#f #f #f #f #f))))
+                       ;; ("enemy-ship" . #hash((position . (400 400))
+                       ;;                       (rotation . 0)
+                       ;;                       (model . ship)
+                       ;;                       (faction . "black")
+                       ;;                       (rockets . (#t #t #f #t #f))))
+                       ;; ("enemy-ship2" . #hash((position . (420 420))
+                       ;;                        (rotation . 0)
+                       ;;                        (model . ship)
+                       ;;                        (faction . "green")
+                       ;;                        (rockets . (#t #t #t #t #f))))
+                       ;; ("enemy-ship3" . #hash((position . (430 350))
+                       ;;                        (rotation . 0)
+                       ;;                        (model . ship)
+                       ;;                        (faction . "red")
+                       ;;                        (rockets . (#t #f #f #t #f))))
+                       ;; ("enemy-ship9" . #hash((position . (100 300))
+                       ;;                        (rotation . 0)
+                       ;;                        (model . ship)
+                       ;;                        (faction . "yellow")
+                       ;;                        (rockets . (#t #f #t #f #f))))
+                       ;; ("another-ship" . #hash((position . (500 350))
+                       ;;                         (rotation . 12)
+                       ;;                         (model . ship)
+                       ;;                         (faction . "purple")
+                       ;;                         (rockets . (#f #t #t #f #t))))
                        )))
 
 (define (has-component? entity component-type)
@@ -288,6 +289,25 @@ Have fun!
        #:when rocket-on?)
     (map + cumulative-force rocket-force)))
 
+;; Takes the relative force on the ship and the ships rotation and
+;; returns that force in gamespace. Note that this x and y still use
+;; the same coordinate system as gamespace (positive y being down).
+;; But relative to the ship so if force-x = 0 and force-y = -5 that
+;; means the ship is pushing forward at a force of 5.
+;; Ships rotation is counter-clockwise and in degrees as that's what
+;; racket's image library works with.
+(define (gamespace-force ship-rotation relative-force)
+  (let ([theta (degrees->radians (modulo (- 360 ship-rotation) 360))]
+        [rx (first relative-force)]
+        [ry (second relative-force)])
+    (map round-to-2-places
+         (list (- (* rx (cos theta)) (* ry (sin theta)))
+               (+ (* rx (sin theta)) (* ry (cos theta)))))))
+
+;; Not really sure what resolution I need.
+(define (round-to-2-places n)
+  (/ (round (* 100 n)) 100))
+
 (define apply-rockets
   (system '(rockets position rotation)
    (lambda (state id components)
@@ -315,29 +335,11 @@ Have fun!
                 'rotation new-rotation
                 'position ghetto-wall-collision-position))))
 
-;; Takes the relative force on the ship and the ships rotation and
-;; returns that force in gamespace. Note that this x and y still use
-;; the same coordinate system as gamespace (positive y being down).
-;; But relative to the ship so if force-x = 0 and force-y = -5 that
-;; means the ship is pushing forward at a force of 5.
-;; Ships rotation is counter-clockwise and in degrees as that's what
-;; racket's image library works with.
-(define (gamespace-force ship-rotation relative-force)
-  (let ([theta (degrees->radians (modulo (- 360 ship-rotation) 360))]
-        [rx (first relative-force)]
-        [ry (second relative-force)])
-    (map round-to-2-places
-         (list (- (* rx (cos theta)) (* ry (sin theta)))
-               (+ (* rx (sin theta)) (* ry (cos theta)))))))
-
-;; Not really sure what resolution I need.
-(define (round-to-2-places n)
-  (/ (round (* 100 n)) 100))
-
 (define (update-game state)
   (define update-function
     (compose
-     random-rockets
+     ;;random-rockets
+     logic-rockets
      apply-rockets))
   (update-function state))
 
