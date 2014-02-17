@@ -1,5 +1,50 @@
 * TODO Create language for controlling rockets.
 ** TODO Simple language syntax parser function.
+*** TODO Create macros
+For def-action, def-query and def-rule. For now they will just return
+something that's hopefully useful. I'll collect all the results
+together in a list and that is what I'll run through my unifier.
+
+I'm having a lot of trouble figuring out how to define these things.
+I feel like def-action and the rest should be macros that define a
+macro that can be used 
+*** TODO Create interpreter / unifier
+Rules to start with
+   (def-action (rotate-clockwise)
+     (fire-rocket bs)
+     (fire-rocket sp))
+
+   (def-query (near-left-boarder)
+     (< pos-x 100))
+
+   (def-query (near-right-boarder)
+     (> pos-x 900))
+
+   (def-query (facing-right)
+     (= rotation 270))
+
+   (def-query (facing-left)
+     (= rotation 90))
+
+   (def-rule avoiding-left
+     (near-left-boarder)
+     (not (facing-right))
+     =>
+     (rotate-clockwise))
+
+   (def-rule avoiding-right
+     (near-right-boarder)
+     (not (facing-left))
+     =>
+     (rotate-clockwise))
+
+   (def-rule
+     (not (avoiding-left))
+     (not (avoiding-right))
+     =>
+     (fire-rocket boost)))
+
+*** Origional notes
 I've decided to model my language off the aoe2 ai language to start
 with. I think I will make the rules look something like this.
 
