@@ -43,7 +43,16 @@ Rules to start with
      (not (avoiding-right))
      =>
      (fire-rocket boost)))
-
+*** TODO Rewrite interpretor in mk so you can have better errors
+I started working on this, you can find a commit with all my work.
+What I was trying to do was translate the logic that the user writes
+directly to minikanren and run it. This it turns out is a bad
+aproach, at least for now. The code the user writes is a lot more
+simple than a full logic programming language. I'm going to circle
+back, write a naive interpretor for the rules and then come back at
+this with more understanding of what I need and hopefully rewrite in
+mk in such a way that I can provide great error messages like (this
+wont ever happen) or (these rules conflict)
 *** Origional notes
 I've decided to model my language off the aoe2 ai language to start
 with. I think I will make the rules look something like this.
