@@ -8,7 +8,8 @@ Have fun!
 (require 2htdp/universe
          2htdp/image
          (except-in racket/match ==)
-         "miniKanren/mk.rkt")
+         "miniKanren/mk.rkt"
+         "rules.rkt")
 
 (define SCREEN-WIDTH 1000)
 (define SCREEN-HEIGHT 500)
@@ -205,64 +206,25 @@ Have fun!
 
 ;; First test of ship controlling, lets just fuck around with the
 ;; rockets every frame and see what happens.
-(define (rand-bool)
-  (< (random) 0.75))
+;; (define (rand-bool)
+;;   (< (random) 0.75))
 
-(define random-rockets
-  (system '(rockets)
-   (lambda (state id components)
-     (define rockets (get-component components 'rockets))
-     ;; (define new-rockets
-     ;;   (for/list ([x (range 5)])
-     ;;     (rand-bool)))
-     (define new-rockets `(#f #f #t #f #t))
-     (hash-set components 'rockets new-rockets)
-     )))
+;; (define random-rockets
+;;   (system '(rockets)
+;;    (lambda (state id components)
+;;      (define rockets (get-component components 'rockets))
+;;      ;; (define new-rockets
+;;      ;;   (for/list ([x (range 5)])
+;;      ;;     (rand-bool)))
+;;      (define new-rockets `(#f #f #t #f #t))
+;;      (hash-set components 'rockets new-rockets)
+;;      )))
 
 ;; LOGIC STUFF
-
+;; So far this just returns the rockets, later user will need to be
+;; able to do more stuff.
 (define (get-rockets current-rockets state components)
-  ;; State is the gamestate, I think I need to derive a bunch of shit
-  ;; from them.
-
-  ;; lets pick a real simple rule to start with.
-  ;; If location is something turn to face something, drive.
-  ;; Want the ship to fly back and forth.
-
-  ;; Rules
-  ;; if location-x is < 10
-  ;;   if rotation = 270
-  ;;     boost
-  ;;   else
-  ;;     rotate clockwise
-  ;; if location-y is > 990
-  ;;   if rotation - 90
-  ;;     boost
-  ;;   else
-  ;;     rotate clockwise
-
-  ;; First the real shitty version!
-  (define position (get-component components 'position))
-  (define rotation (get-component components 'rotation))
-  (define pos-x (first position))
-  (define boost `(#f #f #f #f #t))
-  (define rotate `(#f #t #t #f #f))
-  (cond
-   [(< pos-x 40) (if (= rotation 270)
-                 boost
-                 rotate)]
-   [(> pos-x 960) (if (= rotation 90)
-                  boost
-                  rotate)]
-   [else boost])
-  
-  ;; (first
-  ;;  (run 1 (q)
-  ;;       (fresh (bp bs sp ss boost)
-  ;;              (== `(,bp ,bs ,sp ,ss ,boost) current-rockets))))
-
-  ;; current-rockets
-  )
+  (run-logic current-rockets state components))
 
 (define logic-rockets
   (system '(rockets)

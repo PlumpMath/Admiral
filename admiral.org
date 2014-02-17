@@ -1,0 +1,70 @@
+* TODO Create language for controlling rockets.
+** TODO Simple language syntax parser function.
+I've decided to model my language off the aoe2 ai language to start
+with. I think I will make the rules look something like this.
+
+(def-action (boost)
+  (set-rocket bp off)
+  (set-rocket ... off)
+  (set-rocket boost on)
+  )
+
+(def-rule
+  (position-x < 100)
+  (rotation == 270)
+  =>
+  (boost))
+
+(def-rule
+  (position-x > 900)
+  (rotation == 90)
+  =>
+  (boost))
+
+I'm currently thinking that there are three things that can be define.
+(defquery) can be used to put together a collection of predicates. It
+will let you define simple queries so you can build them up into
+bigger ones.
+(def-query (stopped)
+  !(rocket-on? booster)
+  !(rocket-on? ps)
+  ....)
+
+(defaction) can be used to put together a collection of actions.
+Again so that you can build up bigger actions from small ones.
+(def-action (boost)
+  (set-rocket bp off)
+  (set-rocket bs off)
+  ...
+  (set-rocket boost on))
+
+(def-rule) will be the meat of the code. It will allow you to state
+the conditions and if they evaluate to true then what actions to take.
+(def-rule
+  (position-x > 900)
+  (rotation == 90)
+  =>
+  (boost))
+** TODO Starting built in queries defined
+I will have basic queries available in the game and possibly will
+open up aditional ones as the player progresses and upgrades the
+sensors on their shit, etc.
+
+** TODO User defined vars
+I want the user to be able to define their own vars that carry over
+from frame to frame. This should also be able to be a list or a stack
+or something so that they can do some real programming with it. You
+could have a set of parameters that infers that you are being fired
+upon and then you set a var called evasion. This evasion carries over
+and all your rules could be completely different depending on which
+state you are in.
+** TODO Debugging and gui
+I really would also love some great debugging built in. I think that
+might be the best place for minikanren to enter the picture. If I
+write a metainterpretor for these rules then I can notify the user
+when they have conflicting rules or when they hit edge cases or
+whatever. That will be challenging and fun but will have to wait
+until I am further along. I also want to show as much data to the
+user as they work on the rockets. These will be editable live in the
+game so that they can have immediate feedback and all user defined
+vars and stats and things will be visable in the gui.
