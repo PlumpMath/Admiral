@@ -22,7 +22,7 @@ Have fun!
 ;; components. That should be an implementation detail though, just
 ;; about everything is abstract on top of that.
 (define a-world (gamestate
-                 #hash(("player-ship" . #hash((position . (100 100))
+                 #hash(("player-ship" . #hash((position . (500 100))
                                               (rotation . 90)
                                               (model . ship)
                                               (faction . "blue")

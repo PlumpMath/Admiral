@@ -66,16 +66,29 @@
    ;;   (fire-rocket boost))))
 
 ;; What I need the rules to look like, post macro. First guess?
-(define rules
+(define (rockets-from-mk current-rockets state components)
   ;; stuff will have to be defined from the gamestate.
-  (define pos-x 99)
-  (define rotation 90)
+  (define position (get-component components 'position))
+  (define rotation (get-component components 'rotation))
+  (define pos-x (first position))
   (define rotate-clockwise
     (lambda (bp bs sp ss boost)
       (fresh ()
+        (== bp #f)
         (== bs #t)
-        (== sp #t))))
-  (run* (q)
+        (== sp #t)
+        (== ss #f)
+        (== boost #f))))
+  (define booster-rocket
+    (lambda (bp bs sp ss boost)
+      (fresh ()
+        (== bp #f)
+        (== bs #f)
+        (== sp #f)
+        (== ss #f)
+        (== boost #t))))
+  (define new-rockets
+     (run* (q)
         (fresh (near-left-border near-right-border
                 facing-right facing-left
                 avoiding-left avoiding-right
@@ -87,25 +100,36 @@
           (== near-right-border (> pos-x 900))
           (== facing-right (= rotation 270))
           (== facing-left (= rotation 90))
+          ;; need to pull out clauses because conde are independant
+          ;(== avoiding-left (and near-left-border (not facing-right)))
+          (conde [(== near-left-border #t)
+                  (== facing-right #f)
+                  (== avoiding-left #t)]
+                 [succeed (== avoiding-left #f)])
+          ;; why is this not true? :TODO :BUG
+          (== avoiding-right (and near-right-border (not facing-left)))
           (conde
-           [(== avoiding-left #t) ;; maybe just succeed?
-            (== near-left-border #t)
-            (== facing-right #f)
-            (rotate-clockwise bp bs sp ss boost)] ;; hmm TODO
+           [(== avoiding-left #t)
+            (rotate-clockwise bp bs sp ss boost)]
            [(== avoiding-right #t)
-            (== near-right-border #t)
-            (== facing-left #f)
-            (rotate-clockwise bp bs sp ss boost)] ;; see above
+            (rotate-clockwise bp bs sp ss boost)]
            [(== avoiding-left #f)
             (== avoiding-right #f)
-            (== boost #t)]
+            (booster-rocket bp bs sp ss boost)]
            )
-          (== q `(,near-left-border ,near-right-border
-                                    ,facing-right
-                                    ,facing-left
-                                    ,avoiding-left
-                                    ,avoiding-right
-                                    ,bp ,bs ,sp ,ss ,boost)))
+          (== q `(;; ,near-left-border ,near-right-border
+                  ;;                   ,facing-right
+                  ;;                   ,facing-left
+                  ;;                   ,avoiding-left
+                  ;;                   ,avoiding-right
+                  (,near-left-border ,near-right-border
+                   ,facing-left ,facing-right
+                   ,avoiding-left ,avoiding-right)
+                  ,bp ,bs ,sp ,ss ,boost)))
+        )
+     )
+  (display new-rockets)
+  (rest (first new-rockets))
   )
 ;;
 
@@ -126,5 +150,6 @@
    [else boost]))
 
 (define (run-logic current-rockets state components)
-  (get-rockets-by-dumb-rules current-rockets state components)
+  (rockets-from-mk current-rockets state components)
+  ;(get-rockets-by-dumb-rules current-rockets state components)
   )
