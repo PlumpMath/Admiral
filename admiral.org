@@ -9,6 +9,47 @@ I'm having a lot of trouble figuring out how to define these things.
 I feel like def-action and the rest should be macros that define a
 macro that can be used 
 *** TODO Create interpreter / unifier
+I'm starting to rethink what the language should look like. I think
+it might be nicer to have it be real straitforward. Like sqlish even.
+
+**** Current thoughts
+# Thinking about a rules language that looks like this.
+
+move X := 
+
+position-x < 100 == near-left-border
+position-x > 900 == near-right-border
+
+rotate-clockwise == bow-starboard-rocket AND stern-port-rocket
+
+near-left-border AND NOT facing-left
+== rotate-clockwise AND avoiding-left-wall
+
+near-right-border AND NOT facing-right
+== rotate-clockwise AND avoiding-right-wall
+
+NOT avoiding-left-wall
+AND NOT avoiding-right-wall
+== booster-rocket
+
+# that parses to something like this
+
+`((UNIFY (LT pos-x 100) near-left-border)
+  (UNIFY (GT pos-x 900) near-right-border)
+  (UNIFY rotate-clockwise (AND bow-starboard-rocket
+                               stern-port-rocket))
+  (UNIFY (AND near-left-border (NOT facing-left))
+         (AND rotate-clockwise avoiding-right-wall))
+  (UNIFY (AND near-right-border (NOT facing-right))
+         (AND rotate-clockwise avoiding-left-wall))
+  (UNIFY (AND (NOT avoiding-right-wall)
+              (NOT avoiding-left-wall))
+         booster-rocket))
+
+Want to add the ability to persist a var to the next frame.
+Want to add lists or stacks or something so you can do better ai.
+
+**** Origional rules I had.
 Rules to start with
    (def-action (rotate-clockwise)
      (fire-rocket bs)
@@ -38,7 +79,7 @@ Rules to start with
      =>
      (rotate-clockwise))
 
-   (def-rule
+   (def-rule otherwise
      (not (avoiding-left))
      (not (avoiding-right))
      =>
