@@ -14,39 +14,119 @@
   (hash-ref entity component-type #f))
 ;; ------------------------------
 
+;; todo, better way to pull these vars.
+;; returns the rockets.
+(define (get-rockets pos-x rotation rules)
 
-(define (get-rockets-by-naive-interpretor current-rockets state components)
-  ;;
-  (define position (get-component components 'position))
-  (define rotation (get-component components 'rotation))
-  (define pos-x (first position))
+  ;; sorta copying this from the boolean logic interpretor here
+  ;; https://github.com/webyrd/meta-interp/blob/master/boolean.scm
+  ;; I think I need a similar approach.
 
-  (define boost `(#f #f #f #f #t))
-  (define rotate `(#f #t #t #f #f))
+  ;; defines all the possible forms
+  (define termo
+    (lambda (t)
+      (conde
+       [(fresh (t1 t2)
+               (== `(UNIFY ,t1 ,t2) t)
+               (termo t1)
+               (termo t2))]
+       [(fresh (t1 t2)
+               (== `(AND ,t1 ,t2) t)
+               (termo t1)
+               (termo t2))]
+       [(fresh (t1 t2)
+               (== `(OR ,t1 ,t2) t)
+               (termo t1)
+               (termo t2))]
+       [(fresh (t1)
+               (== `(NOT ,t1) t)
+               (termo t1))]
+       [(== #t t)]
+       [(== #f t)])))
+
+  (define ruleseto
+    (lambda (ts)
+      (conde
+       [(fresh (f r)
+               (== (cons f r) ts)
+               (termo f)
+               (ruleseto r))])))
+
+  ;; oh! I think I might need the concept of an environment which is
+  ;; where the vars that I actually want to unify would be.
+
+  (define not-in-envo
+    (lambda (x env)
+      (conde
+       [(fresh (k v rest)
+          (== `((,k . ,v) . ,rest) env)
+          (=/= k x)
+          (not-in-envo x rest))]
+       [(== '() env)])))
+
+  (define get-from-envo
+    (lambda (x env val)
+      (fresh (k v rest)
+        (== `((,k . ,v) . ,rest) env)
+        (conde
+         [(== k x)
+          (== v val)]
+         [(get-from-envo x rest val)]))))
   
-  (struct orders (queries user-actions rules) #:transparent)
-  (struct rule (queries negated-queries actions) #:transparent)
+  (define evalo
+    (lambda (exp c-env n-env val)
+      (conde
+       ;; New user defined variable.
+       [(symbolo exp)
+        (not-in-envo exp c-env)
+        (fresh (v)
+          (== val v)
+          (== n-env `((,exp . ,v) . ,c-env)))]
+       ;; Existing variable
+       [(symbolo exp)
+        (get-from-envo exp c-env val)
+        (== c-env n-env)]
+       ;; Unify two expressions
+       [(fresh (e1 e2 v1 v2 env*)
+          (== `(UNIFY ,e1 ,e2) exp)
+          (evalo e1 c-env env* v1)
+          (evalo e2 env* n-env v2)
+          (== v1 v2)
+          ;; Not sure about this because there's no real result.
+          (== val v2))]
+       ;; Think I need this maybe for literal true and false if that's
+       ;; a thing?
+       [(== exp #t)
+        (== c-env n-env)
+        (== exp val)]
+       [(== exp #f)
+        (== c-env n-env)
+        (== exp val)])))
 
-  ;; what I might want the parsed rules to look like.
-  (define rules (orders
-                 `#hash((near-left-border . ,(< pos-x 100))
-                        (near-right-border . ,(> pos-x 900))
-                        (facing-right . ,(= rotation 270))
-                        (facing-left . ,(= rotation 90)))
-                 `#hash((rotate-clockwise . ((fire-rocket bs)
-                                             (fire-rocket sp))))
-                 ;; todo, dependencies stuff
-                 `#hash((avoiding-left . ,(rule `(near-left-border)
-                                                `(facing-right)
-                                                `(rotate-clockwise)))
-                        (avoiding-right . ,(rule `(near-right-border)
-                                                 `(facing-left)
-                                                 `(rotate-clockwise)))
-                        (otherwise . ,(rule `()
-                                            `(avoiding-left avoiding-right)
-                                            `(fire-rocket boost))))))
-  boost)
+  ;; Needed for finally resolving shit to a bool instead of an
+  ;; expression that resolves to a bool.
+  ;; if you run evalo and for instance unify something to false that
+  ;; something actually resolves to any expression that resolves to
+  ;; false so you have to restrict it to being a bool if you want one
+  ;; answer.
+  ;; mindblown.gif
+  (define boolo
+    (lambda (b)
+      (conde
+       [(== b #t)]
+       [(== b #f)])))
 
+  ;; This is working really well and returns #f
+  ;;  (run 1 (q) (fresh (result blah) (evalo `(UNIFY hello ,q)
+  ;;  `((hello . #f)) blah result)) (boolo q))
+
+  ;; If I run it with run* though it runs forever, need to figure out
+  ;; a way to get it to not do that or something, or maybe it's fine?
+  ;; well, there is only one solution so I don't want it to keep
+  ;; running
+
+  `(#f #f #f #t #f)
+  )
 
 (define (get-rockets-by-mk-interpretor current-rockets state components)
   (define position (get-component components 'position))
@@ -75,18 +155,8 @@
                               (NOT avoiding-left-wall))
                          booster-rocket))
     )
-
-  ;; I think I need minikanren for this... Maybe I can actually write
-  ;;this! o boy that would just be the best thing ever!
-  
-  
-
-
-  )
-
-
+  (get-rockets pos-x rotation rules))
 
 (define (run-logic current-rockets state components)
-  (get-rockets-by-interpretor current-rockets state components)
-  ;(get-rockets-by-dumb-rules current-rockets state components)
+  (get-rockets-by-mk-interpretor current-rockets state components)
   )
