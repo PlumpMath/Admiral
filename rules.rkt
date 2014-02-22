@@ -86,6 +86,7 @@
        [(symbolo exp)
         (get-from-envo exp c-env val)
         (== c-env n-env)]
+       ;; TODO: pull out all this similar shit of evaling arguments.
        ;; Unify two expressions
        [(fresh (e1 e2 v1 v2 env*)
           (== `(UNIFY ,e1 ,e2) exp)
@@ -94,6 +95,23 @@
           (== v1 v2)
           ;; Not sure about this because there's no real result.
           (== val v2))]
+       ;; And
+       [(fresh (e1 e2 v1 v2 env*)
+          (== `(AND ,e1 ,e2) exp)
+          (evalo e1 c-env env* v1)
+          (evalo e2 env* n-env v2)
+          (ando v1 v2 val))]
+       ;; OR
+       [(fresh (e1 e2 v1 v2 env*)
+          (== `(OR ,e1 ,e2) exp)
+          (evalo e1 c-env env* v1)
+          (evalo e2 env* n-env v2)
+          (oro v1 v2 val))]
+       ;; Not
+       [(fresh (e v)
+          (== `(NOT ,e) exp)
+          (evalo e c-env n-env v)
+          (noto v val))]
        ;; Think I need this maybe for literal true and false if that's
        ;; a thing?
        [(== exp #t)
@@ -102,6 +120,28 @@
        [(== exp #f)
         (== c-env n-env)
         (== exp val)])))
+
+  (define ando
+    (lambda (a b r)
+      (conde
+       [(== a #t) (== b #t) (== r #t)]
+       [(== a #f) (== b #t) (== r #f)]
+       [(== a #t) (== b #f) (== r #f)]
+       [(== a #f) (== b #f) (== r #f)])))
+
+  (define oro
+    (lambda (a b r)
+      (conde
+       [(== a #t) (== b #t) (== r #t)]
+       [(== a #f) (== b #t) (== r #t)]
+       [(== a #t) (== b #f) (== r #t)]
+       [(== a #f) (== b #f) (== r #f)])))
+
+  (define noto
+    (lambda (x v)
+      (conde
+       [(== x #t) (== v #f)]
+       [(== x #f) (== v #t)])))
 
   ;;(run 1 (q) (fresh (v) (eval-all `((UNIFY foo bar) (UNIFY bar #t)) `() q)))
   (define eval-all
