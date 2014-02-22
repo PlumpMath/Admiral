@@ -103,6 +103,17 @@
         (== c-env n-env)
         (== exp val)])))
 
+  ;;(run 1 (q) (fresh (v) (eval-all `((UNIFY foo bar) (UNIFY bar #t)) `() q)))
+  (define eval-all
+    (lambda (exps c-vars n-vars)
+      (conde
+       [(fresh (f r env* v)
+               (== (cons f r) exps)
+               (evalo f c-vars env* v)
+               (eval-all r env* n-vars))]
+       [(== `() exps)
+        (== c-vars n-vars)])))
+
   ;; Needed for finally resolving shit to a bool instead of an
   ;; expression that resolves to a bool.
   ;; if you run evalo and for instance unify something to false that
