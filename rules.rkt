@@ -1,5 +1,5 @@
 #lang racket
-(require "orders.rkt")
+(require "first-order.rkt")
 
 ;; I have not figured this out at all yet. Need to figure out good
 ;; ways to write the ai.
@@ -33,23 +33,32 @@
   (define facing-left (= rotation 90))
   (define facing-right (= rotation 270))
 
+  (define rules `((IFF ,nlb near-left-border)
+                  (IFF ,nrb near-right-border)
+                  
+                  (IFF rotate-clockwise bow-starboard-rocket)
+                  (IFF rotate-clockwise stern-port-rocket)
+                  
+                  (IF (AND near-left-border (NOT ,facing-right))
+                      rotate-clockwise)
+                  (IF (AND near-right-border (NOT ,facing-left))
+                      rotate-clockwise)
+                  
+                  (IF (AND (NOT near-right-border)
+                           (NOT near-left-border))
+                      booster-rocket)
+                  
+                  (IF (AND near-left-border ,facing-right)
+                      booster-rocket)
+                  
+                  (IF (AND near-right-border ,facing-left)
+                      booster-rocket)
+                  
+                  (IFF (NOT rotate-clockwise) booster-rocket)
+                  )
+    )
 
-  (define rules `((UNIFY ,nlb near-left-border)
-                  (UNIFY ,nrb near-right-border)
-                  (UNIFY rotate-clockwise (AND bow-starboard-rocket
-                                               stern-port-rocket))
-                  (UNIFY (AND near-left-border (NOT ,facing-left))
-                         (AND rotate-clockwise avoiding-right-wall))
-                  (UNIFY (AND near-right-border (NOT ,facing-right))
-                         (AND rotate-clockwise avoiding-left-wall))
-                  (UNIFY (AND (NOT avoiding-right-wall)
-                              (NOT avoiding-left-wall))
-                         booster-rocket)))
-
-  (define vars (eval-rules rules `()))
-  (display "vars\n")
-  (display vars)
-  (display "\n")
+  (define vars (first (apply evaluate-assertions rules)))
 
   (list
    (dict-ref vars 'bow-port-rocket #f)
