@@ -7,8 +7,6 @@ Have fun!
 
 (require 2htdp/universe
          2htdp/image
-         (except-in racket/match ==)
-         "miniKanren/mk.rkt"
          "rules.rkt")
 
 (define SCREEN-WIDTH 1000)

@@ -7,3 +7,5 @@
 /macro-testing.rkt
 
 /miniKanren/compiled/
+
+\#rules.rkt\#1\#

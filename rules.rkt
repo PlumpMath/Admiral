@@ -57,7 +57,7 @@
                   (IFF (NOT rotate-clockwise) booster-rocket)
                   )
     )
-
+  
   (define vars (first (apply evaluate-assertions rules)))
 
   (list
