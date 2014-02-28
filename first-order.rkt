@@ -1,5 +1,6 @@
 #lang racket
 (require "miniKanren/mk.rkt")
+(provide evaluate-assertions)
 
 (define (key-not-boundo key env)
   (conde
