@@ -1,24 +1,11 @@
 #lang racket
 (require "first-order.rkt")
-
-;; I have not figured this out at all yet. Need to figure out good
-;; ways to write the ai.
+(require "engine.rkt")
 (provide run-logic)
-
-;; OMG THIS DONT GO HERE OH LORDY TODO
-;; needs to be game engine code file.
-(define (has-component? entity component-type)
-  (hash-has-key? entity component-type))
-
-(define (get-component entity component-type)
-  (hash-ref entity component-type #f))
-;; ------------------------------
 
 ;; todo, better way to pull these vars.
 ;; returns the rockets.
 (define (get-rockets pos-x rotation rules)
-
-
   `(#f #f #t #t #f)
   )
 

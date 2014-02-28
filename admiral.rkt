@@ -7,13 +7,12 @@ Have fun!
 
 (require 2htdp/universe
          2htdp/image
+         "engine.rkt"
          "rules.rkt")
 
 (define SCREEN-WIDTH 1000)
 (define SCREEN-HEIGHT 500)
 (define TICKS-PER-SECOND 60)
-
-(struct gamestate (entities) #:transparent)
 
 ;;;; GameWorld
 ;; Internally there's a hash-map of entities to hash-map of
@@ -51,12 +50,6 @@ Have fun!
                        ;;                         (faction . "purple")
                        ;;                         (rockets . (#f #t #t #f #t))))
                        )))
-
-(define (has-component? entity component-type)
-  (hash-has-key? entity component-type))
-
-(define (get-component entity component-type)
-  (hash-ref entity component-type #f))
 
 ;;;; Graphics
 ;; This is a bit messy and sort of locked to 1000 x 500
@@ -127,96 +120,10 @@ Have fun!
 
 (define (render-game state)
   ;; Draw entities.
-  (define entities (gamestate-entities state))
+  (define entities (get-entities state))
   (for/fold ([frame background-grid])
             ([ent (hash-values entities)])
     (draw-entity frame ent)))
-
-;;;; Systems
-
-;; Lets try and get rid of some of this boilerplate.
-
-;; Systems are called with each entity that has all the components.
-;; They should return a new entity. I need to also give them access
-;; to the whole gamestate somehow so they can query it. Not sure yet
-;; if this should just return a lambda that gets the defines for us or if
-;; it should instead return something that hooks into a more
-;; efficiciant way to precompute what's needed.
-
-;; Making this a macro will make the syntax a bit nicer.
-
-;; Typed racket is another option to make sure the body is correct.
-;; first, body has to be a function that can be called
-;; (body state id components). It is called once with each entity with all
-;; required-components.
-;; but what does it return....
-;; Maybe it should return a map of ids to entities. That way it can
-;; update any entities it wants, but that wont let it remove
-;; entities...
-;; This is one of the problems with functional purity, if you could
-;; just set! on any entities (like how all other game engines work)
-;; this wouldn't be a problem.
-;; Another thing to do is to return a full gamestate and just add a
-;; few helpers for (update-entity or whatever). Yet another thing to
-;; do is have a few variations on system that can return different
-;; things.
-;; I actuially really like that idea, just make em when you need em.
-
-;; This seems overly verbose... Need to learn more racket probaby.
-(define (has-comps? kvp required-components)
-  (define ent (cdr kvp))
-  (for/fold
-      ([has-all? #t])
-      ([has-comp? (map (curry hash-has-key? ent) required-components)])
-    (and has-all? has-comp?)))
-
-(module+ test-has-comps (require rackunit)
-  (define an-entity '("entity-id" . #hash((position . (100 100))
-                                          (magic-swag . "holla"))))
-  (check-true (has-comps? an-entity '(position magic-swag)))
-  (check-false (has-comps? an-entity '(position evil-powers)))
-  )
-
-;; Body must return new component hash-map. Will add other variations
-;; later if I need to that allow modification of other entities and
-;; adding and removing entities.
-;; (body state id components) => components
-(define (system required-components body)
-  (lambda (state)
-    (define entities (gamestate-entities state))
-    (define new-ents
-      (for/fold
-          ([ents entities])
-          ([kvp (hash->list entities)]
-           #:when (has-comps? kvp required-components))
-        (define id (car kvp))
-        (define comps (cdr kvp))
-        (define new-comps (body state id comps))
-        (hash-set ents id new-comps)))
-    (struct-copy gamestate state [entities new-ents])))
-
-(module+ test-system (require rackunit)
-  (define an-entity '("entity-id" . #hash((position . (100 100))
-                                          (magic-swag . "holla"))))
-  (check-true (has-comps? an-entity '(position magic-swag)))
-  (check-false (has-comps? an-entity '(position evil-powers)))
-  )
-
-;; First test of ship controlling, lets just fuck around with the
-;; rockets every frame and see what happens.
-;; (define (rand-bool)
-;;   (< (random) 0.75))
-
-;; (define random-rockets
-;;   (system '(rockets)
-;;    (lambda (state id components)
-;;      (define rockets (get-component components 'rockets))
-;;      ;; (define new-rockets
-;;      ;;   (for/list ([x (range 5)])
-;;      ;;     (rand-bool)))
-;;      (define new-rockets `(#f #f #t #f #t))
-;;      (hash-set components 'rockets new-rockets)
-;;      )))
 
 ;; LOGIC STUFF
 ;; So far this just returns the rockets, later user will need to be
@@ -295,19 +202,14 @@ Have fun!
                 'rotation new-rotation
                 'position ghetto-wall-collision-position))))
 
-(define (update-game state)
-  (define update-function
-    (compose
-     ;;random-rockets
-     logic-rockets
-     apply-rockets))
-  (update-function state))
+(define update
+  (system-updater
+   logic-rockets
+   apply-rockets))
 
 (define (start-scene)
   (big-bang a-world
-            (on-tick update-game (/ 1 TICKS-PER-SECOND))
-            ;;(on-key keydown)
-            ;;(on-release keyup)
+            (on-tick update (/ 1 TICKS-PER-SECOND))
             (to-draw render-game)))
 
 ;;(start-scene)
