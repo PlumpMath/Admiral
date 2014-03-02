@@ -1,15 +1,58 @@
 #lang racket
 (require "../engine.rkt"
-         "../rules.rkt")
+         "../first-order.rkt"
+         ;;"../rules.rkt"
+         )
 (provide logic-rockets)
 
-(define (get-rockets current-rockets state components)
-  (run-logic current-rockets state components))
+(define (get-rockets state components)
+  (define position (get-component components 'position))
+  (define rotation (get-component components 'rotation))
+  (define pos-x (first position))
+  
+  (define nlb (< pos-x 100))
+  (define nrb (> pos-x 700))
+  (define facing-left (= rotation 90))
+  (define facing-right (= rotation 270))
+
+  (define rules `((IFF ,nlb near-left-border)
+                  (IFF ,nrb near-right-border)
+                  
+                  (IFF rotate-clockwise bow-starboard-rocket)
+                  (IFF rotate-clockwise stern-port-rocket)
+                  
+                  (IF (AND near-left-border (NOT ,facing-right))
+                      rotate-clockwise)
+                  (IF (AND near-right-border (NOT ,facing-left))
+                      rotate-clockwise)
+                  
+                  (IF (AND (NOT near-right-border)
+                           (NOT near-left-border))
+                      booster-rocket)
+                  
+                  (IF (AND near-left-border ,facing-right)
+                      booster-rocket)
+                  
+                  (IF (AND near-right-border ,facing-left)
+                      booster-rocket)
+                  
+                  (IFF (NOT rotate-clockwise) booster-rocket)
+                  )
+    )
+  
+  (define vars (first (apply evaluate-assertions rules)))
+
+  (list
+   (dict-ref vars 'bow-port-rocket #f)
+   (dict-ref vars 'bow-starboard-rocket #f)
+   (dict-ref vars 'stern-port-rocket #f)
+   (dict-ref vars 'stern-starboard-rocket #f)
+   (dict-ref vars 'booster-rocket #f))
+  )
 
 (define logic-rockets
   (system '(rockets)
     (lambda (state id components)
-      (define rockets (get-component components 'rockets))
-      (define next-rockets (get-rockets rockets state components))
+      (define next-rockets (get-rockets state components))
       (hash-set components 'rockets next-rockets)
       )))

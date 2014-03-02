@@ -3,7 +3,13 @@
          has-comps? system system-updater
          get-entities)
 
-(struct gamestate (entities) #:transparent)
+(struct gamestate (rules entities) #:transparent)
+
+(define (get-rules state)
+  (gamestate-rules state))
+
+(define (set-rules state new-rules)
+  (struct-copy gamestate state [rules new-rules]))
 
 (define (get-entities state)
   (gamestate-entities state))

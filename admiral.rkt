@@ -9,9 +9,8 @@ Have fun!
          2htdp/image
          "engine.rkt"
          "render.rkt"
-         "rules.rkt"
          "systems/physics.rkt"
-         "systems/logic.rkt")
+         "systems/rules.rkt")
 
 (define SCREEN-WIDTH 800)
 (define SCREEN-HEIGHT 600)
@@ -22,6 +21,7 @@ Have fun!
 ;; components. That should be an implementation detail though, just
 ;; about everything is abstract on top of that.
 (define a-world (gamestate
+                 `()
                  #hash(("player-ship" . #hash((position . (500 100))
                                               (rotation . 90)
                                               (model . ship)
@@ -57,16 +57,6 @@ Have fun!
 ;; LOGIC STUFF
 ;; So far this just returns the rockets, later user will need to be
 ;; able to do more stuff.
-(define (get-rockets current-rockets state components)
-  (run-logic current-rockets state components))
-
-(define logic-rockets
-  (system '(rockets)
-    (lambda (state id components)
-      (define rockets (get-component components 'rockets))
-      (define next-rockets (get-rockets rockets state components))
-      (hash-set components 'rockets next-rockets)
-      )))
 
 (define update
   (system-updater
