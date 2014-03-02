@@ -3,24 +3,21 @@
 
 (require 2htdp/image
          "engine.rkt")
-(provide render-game)
+(provide get-render-function)
 
-(define SCREEN-WIDTH 1000)
-(define SCREEN-HEIGHT 500)
-
-(define background-grid
+(define (get-background-grid width height)
   (let ([with-x 
-         (for/fold ([scene (empty-scene SCREEN-WIDTH SCREEN-HEIGHT "darkgray")])
-             ([x (stream-map (lambda (x) (* 10 x)) (in-range 1 100))])
+         (for/fold ([scene (empty-scene width height "darkgray")])
+             ([x (stream-map (lambda (x) (* 10 x)) (in-range 1 (/ width 10)))])
            (scene+line
             scene
-            x 0 x SCREEN-HEIGHT "lightgray"
+            x 0 x height "lightgray"
             ))])
     (for/fold ([scene with-x])
-        ([y (stream-map (lambda (x) (* 10 x)) (in-range 1 50))])
+        ([y (stream-map (lambda (x) (* 10 x)) (in-range 1 (/ height 10)))])
       (scene+line
        scene
-       0 y SCREEN-WIDTH y "lightgray"
+       0 y width y "lightgray"
        ))))
 
 (define (ship faction)
@@ -73,9 +70,10 @@
                (first position) (second position)
                scene))
 
-(define (render-game state)
-  ;; Draw entities.
-  (define entities (get-entities state))
-  (for/fold ([frame background-grid])
-            ([ent (hash-values entities)])
-    (draw-entity frame ent)))
+(define (get-render-function screen-width screen-height)
+  (define background-grid (get-background-grid screen-width screen-height))
+  (lambda (state)
+    (define entities (get-entities state))
+    (for/fold ([frame background-grid])
+              ([ent (hash-values entities)])
+      (draw-entity frame ent))))

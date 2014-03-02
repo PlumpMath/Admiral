@@ -137,7 +137,8 @@ Have fun!
 (define (start-scene)
   (big-bang a-world
             (on-tick update (/ 1 TICKS-PER-SECOND))
-            (to-draw render-game)))
+            (to-draw (get-render-function SCREEN-WIDTH
+                                          SCREEN-HEIGHT))))
 
 ;;(start-scene)
 
