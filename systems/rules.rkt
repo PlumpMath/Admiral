@@ -1,7 +1,6 @@
 #lang racket
 (require "../engine.rkt"
          "../first-order.rkt"
-         ;;"../rules.rkt"
          )
 (provide logic-rockets)
 
