@@ -11,3 +11,11 @@
 \#rules.rkt\#1\#
 
 *~
+
+\#
+
+\#*
+
+/systems/compiled/
+
+.DS_Store

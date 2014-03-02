@@ -10,7 +10,8 @@ Have fun!
          "engine.rkt"
          "render.rkt"
          "rules.rkt"
-         "systems/physics.rkt")
+         "systems/physics.rkt"
+         "systems/logic.rkt")
 
 (define SCREEN-WIDTH 800)
 (define SCREEN-HEIGHT 600)

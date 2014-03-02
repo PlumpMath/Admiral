@@ -16,7 +16,7 @@
 
   ;; TODO later, the actual math in the rules
   (define nlb (< pos-x 100))
-  (define nrb (> pos-x 900))
+  (define nrb (> pos-x 700))
   (define facing-left (= rotation 90))
   (define facing-right (= rotation 270))
 
