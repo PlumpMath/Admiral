@@ -5,39 +5,18 @@
 (provide logic-rockets)
 
 (define (get-rockets state components)
+  (define rules-fn (get-rules state))
   (define position (get-component components 'position))
   (define rotation (get-component components 'rotation))
   (define pos-x (first position))
+  (define pos-y (second position))
   
-  (define nlb (< pos-x 100))
-  (define nrb (> pos-x 700))
-  (define facing-left (= rotation 90))
-  (define facing-right (= rotation 270))
+  ;(define nlb (< pos-x 100))
+  ;(define nrb (> pos-x 700))
+  ;(define facing-left (= rotation 90))
+  ;(define facing-right (= rotation 270))
 
-  (define rules `((IFF ,nlb near-left-border)
-                  (IFF ,nrb near-right-border)
-                  
-                  (IFF rotate-clockwise bow-starboard-rocket)
-                  (IFF rotate-clockwise stern-port-rocket)
-                  
-                  (IF (AND near-left-border (NOT ,facing-right))
-                      rotate-clockwise)
-                  (IF (AND near-right-border (NOT ,facing-left))
-                      rotate-clockwise)
-                  
-                  (IF (AND (NOT near-right-border)
-                           (NOT near-left-border))
-                      booster-rocket)
-                  
-                  (IF (AND near-left-border ,facing-right)
-                      booster-rocket)
-                  
-                  (IF (AND near-right-border ,facing-left)
-                      booster-rocket)
-                  
-                  (IFF (NOT rotate-clockwise) booster-rocket)
-                  )
-    )
+  (define rules (rules-fn pos-x pos-y rotation))
   
   (define vars (first (apply evaluate-assertions rules)))
 

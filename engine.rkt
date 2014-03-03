@@ -1,7 +1,7 @@
 #lang racket
 (provide gamestate has-component? get-component
          has-comps? system system-updater
-         get-entities)
+         get-entities get-rules set-rules)
 
 (struct gamestate (rules entities) #:transparent)
 

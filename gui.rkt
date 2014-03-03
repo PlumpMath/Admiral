@@ -1,4 +1,11 @@
 #lang racket/gui
+#| This whole file is very "hack it till it works" right now. TODO come back
+   and rethink just about everything
+|#
+
+;; TODO: Need the editor and the engine to use different event spaces so that
+;; typing is responsive. Also play with frames / second for simulation because
+;; it's real laggy.
 (require "render.rkt" "engine.rkt" "rules.rkt"
          "systems/physics.rkt"
          "systems/rules.rkt"
@@ -13,12 +20,40 @@
 
 (define TICKS-PER-SECOND 60)
 
+(define base-rules 
+ "(lambda (pos-x pos-y rotation)
+    `((IFF ,(< pos-x 100) near-left-border)
+      (IFF ,(> pos-x 700) near-right-border)
+      (IFF ,(= rotation 90) facing-left)
+      (IFF ,(= rotation 270) facing-right)
+      (IFF rotate-clockwise bow-starboard-rocket)
+      (IFF rotate-clockwise stern-port-rocket)
+      
+      (IF (AND near-left-border (NOT facing-right))
+          rotate-clockwise)
+      (IF (AND near-right-border (NOT facing-left))
+          rotate-clockwise)
+    
+      (IF (AND (NOT near-right-border)
+               (NOT near-left-border))
+          booster-rocket)
+    
+      (IF (AND near-left-border facing-right)
+          booster-rocket)
+    
+      (IF (AND near-right-border facing-left)
+          booster-rocket)
+    
+      (IFF (NOT rotate-clockwise) booster-rocket)
+      ))")
+
 (define a-world (gamestate
-                 `()
+                 ;; TODO decide what data it gets.
+                 (lambda (pos-x pos-y rotation) `())
                  #hash(("player-ship" . #hash((position . (500 100))
                                               (rotation . 90)
                                               (model . ship)
-                                              (faction . "blue")
+                                              (faction . "teal")
                                               (rockets . (#f #f #f #f #f)))))))
 
 ;; mutable bullshit for now
@@ -54,10 +89,16 @@
                [width FRAME-WIDTH]
                [height FRAME-HEIGHT]))
 
-;; Dunno what this is for yet
-(define msg (new message%
-                 [parent frame]
-                 [label "No events so far..."]))
+(define (button-callback b e)
+  (define rule-string (send t get-text))
+  (define r (read (open-input-string rule-string)))
+  (define l (eval r))
+  (set! world (set-rules world l)))
+
+(define button (new button%
+                    [parent frame]
+                    [label "Eval Rules"]
+                    [callback button-callback]))
 
 (define panel (new horizontal-panel%
                    [parent frame]
@@ -66,20 +107,27 @@
 (define editor (new editor-canvas%
                     [parent panel]
                     [min-width EDITOR-WIDTH]
-                    
                     ))
 
 (define t (new text%))
+(send t insert base-rules 0)
+(send editor set-editor t)
+
+(define rule-string (send t get-text))
+;(display rule-string)
+(define r (read (open-input-string rule-string)))
+(display r)
+
 (send editor set-editor t)
 
 (define game (new (class canvas%
                     (super-new)
                     
-                    ;;
                     ;;(define/override (on-char key-event)
                     ;;  (when (eq? (send key-event get-key-code) 'release)
                     ;;    (set! state 0)
                     ;;    (send game refresh))))
+                    
                     )
                   [parent panel]
                   [min-width CANVAS-WIDTH]
@@ -89,4 +137,4 @@
 
 (define timer (new timer%
                    [notify-callback tick!]
-                   [interval 17]))
+                   [interval 20]))
