@@ -113,11 +113,6 @@
 (send t insert base-rules 0)
 (send editor set-editor t)
 
-(define rule-string (send t get-text))
-;(display rule-string)
-(define r (read (open-input-string rule-string)))
-(display r)
-
 (send editor set-editor t)
 
 (define game (new (class canvas%
