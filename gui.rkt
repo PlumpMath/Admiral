@@ -6,7 +6,7 @@
 ;; TODO: Need the editor and the engine to use different event spaces so that
 ;; typing is responsive. Also play with frames / second for simulation because
 ;; it's real laggy.
-(require "render.rkt" "engine.rkt" "rules.rkt"
+(require "render.rkt" "engine.rkt"
          "systems/physics.rkt"
          "systems/rules.rkt"
          (only-in mrlib/image-core render-image))
