@@ -71,8 +71,10 @@
                (first position) (second position)
                scene))
 
+;; this is sort of a problem because it's computed at require time and not recomputed on a resize.
+;; TODO: figure out how to manage this stuff. Also this image stuff might be too slow. Might need opengl rendering.
+(define background-grid (get-background-grid (CANVAS-WIDTH) (CANVAS-HEIGHT)))
 (define (render state)
-  (define background-grid (get-background-grid (CANVAS-WIDTH) (CANVAS-HEIGHT)))
   (define entities (get-entities state))
   (for/fold ([frame background-grid])
     ([ent (hash-values entities)])
