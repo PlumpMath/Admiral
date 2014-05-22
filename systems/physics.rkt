@@ -1,8 +1,8 @@
 #lang racket
-#| Rocket Physics |#
+(provide rocket-physics-system)
 
-(require "../engine.rkt")
-(provide get-apply-rockets-system)
+(require "../config.rkt"
+         "../engine.rkt")
 
 ;; rocket locations
 ;;(list bp bs sp ss boost)
@@ -38,7 +38,7 @@
 (define (round-to-2-places n)
   (/ (round (* 100 n)) 100))
 
-(define (get-apply-rockets-system screen-width screen-height)
+(define rocket-physics-system
   (system '(rockets position rotation)
    (lambda (state id components)
      (define rockets (get-component components 'rockets))
@@ -53,11 +53,11 @@
              [y (second new-position)])
          (list (cond
                 [(< x 0) 0]
-                [(> x screen-width) screen-width]
+                [(> x (WORLD-WIDTH)) (WORLD-WIDTH)]
                 [else x])
                (cond
                 [(< y 0) 0]
-                [(> y screen-height) screen-height]
+                [(> y (WORLD-HEIGHT)) (WORLD-HEIGHT)]
                 [else y]))))
      ;; alias this with modify-components or something so it's more
      ;; game like.

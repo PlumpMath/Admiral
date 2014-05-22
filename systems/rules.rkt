@@ -1,8 +1,8 @@
 #lang racket
+(provide rocket-logic-system)
+
 (require "../engine.rkt"
-         "../first-order.rkt"
-         )
-(provide logic-rockets)
+         "../first-order.rkt")
 
 (define (get-rockets state components)
   (define rules-fn (get-rules state))
@@ -28,7 +28,7 @@
    (dict-ref vars 'booster-rocket #f))
   )
 
-(define logic-rockets
+(define rocket-logic-system
   (system '(rockets)
     (lambda (state id components)
       (define next-rockets (get-rockets state components))

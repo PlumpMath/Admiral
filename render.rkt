@@ -1,9 +1,10 @@
 #lang racket
 #| Code for rendering the gamestate |#
+(provide render)
 
 (require 2htdp/image
+         "config.rkt"
          "engine.rkt")
-(provide get-render-function)
 
 (define (get-background-grid width height)
   (let ([with-x 
@@ -70,10 +71,9 @@
                (first position) (second position)
                scene))
 
-(define (get-render-function screen-width screen-height)
-  (define background-grid (get-background-grid screen-width screen-height))
-  (lambda (state)
-    (define entities (get-entities state))
-    (for/fold ([frame background-grid])
-              ([ent (hash-values entities)])
-      (draw-entity frame ent))))
+(define (render state)
+  (define background-grid (get-background-grid (CANVAS-WIDTH) (CANVAS-HEIGHT)))
+  (define entities (get-entities state))
+  (for/fold ([frame background-grid])
+    ([ent (hash-values entities)])
+    (draw-entity frame ent)))
