@@ -32,5 +32,4 @@
   (system '(rockets)
     (lambda (state id components)
       (define next-rockets (get-rockets state components))
-      (hash-set components 'rockets next-rockets)
-      )))
+      (hash-set components 'rockets next-rockets))))

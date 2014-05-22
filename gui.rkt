@@ -89,10 +89,16 @@
                [width FRAME-WIDTH]
                [height FRAME-HEIGHT]))
 
+;; Namespace for evaluation of rocket language lambda.
+;; needs to have `lambda` in it, might be able to actuially implement
+;; rocket language as a racket #lang and then use that for the ns and
+;; eval the language directly!
+(define ns (make-base-namespace))
+
 (define (button-callback b e)
   (define rule-string (send t get-text))
   (define r (read (open-input-string rule-string)))
-  (define l (eval r))
+  (define l (eval r ns))
   (set! world (set-rules world l)))
 
 (define button (new button%
