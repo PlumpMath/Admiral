@@ -23,7 +23,7 @@ Have fun!
 
 (define (start-scene)
   (big-bang a-world
-            (on-tick update (/ 1 TICKS-PER-SECOND))
+            (on-tick update)
             (to-draw render)))
 
 (start-scene)
