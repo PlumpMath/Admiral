@@ -20,7 +20,7 @@
 ;;(define CANVAS-WIDTH 800)
 ;;(define CANVAS-HEIGHT 600)
 
-(define TICKS-PER-SECOND 60)
+;;(define TICKS-PER-SECOND 60)
 
 (define base-rules
  "(lambda (pos-x pos-y rotation)
